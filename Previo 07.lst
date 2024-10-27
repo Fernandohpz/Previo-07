@@ -1,0 +1,94 @@
+---------------------------------------------
+OSHONSOFT Z80 ASSEMBLER LISTING
+Line   Addr Opcode      Label   Instruction
+---------------------------------------------
+0001   0000                           ORG  0000H      ;Origen del reset
+0002   0000 C3 00 01                  JP   0100H      ;Direccion del programa principal
+0003   0003             ;**************************
+0004   0003                           ORG  0100H      ;Programa principal
+0005   0100 31 FF 27    INICIO:       LD   SP,27FFH   ;Dirección de pila
+0006   0103 3E 89                     LD   A,089H     ;PA = Salida, PB = Salida, PC = Entrada
+0007   0105 D3 03                     OUT  (03H),A    ;Configura el PPI
+0008   0107             ;**************************
+0009   0107 21 00 02    CONFIG:      LD   HL,0200H    ;Posicion de la tabla de comandos
+0010   010A 7E          OTROCOM:     LD   A,(HL)      ;Recupera valor de comando
+0011   010B FE 24                    CP   '$'         ;Checa si es el fin de la tabla
+0012   010D CA 19 01                 JP   Z,LINEA1    ;Salta a escribir en la primera linea
+0013   0110 D3 00                    OUT  (00H),A     ;Escribe el comando en el puerto
+0014   0112 CD 43 01                 CALL COMANDO     ;Ejecuta la subrutina para envio al LCD
+0015   0115 23                       INC  HL          ;Incrementa el indice de la tabla
+0016   0116 C3 0A 01                 JP   OTROCOM     ;Ejecuta el siguinte comando
+0017   0119             ;**************************
+0018   0119 21 50 02    LINEA1:      LD   HL,0250H    ;Posicion del primer mensaje
+0019   011C CD 36 01                 CALL OTRALET     ;Checa si hay mas letras
+0020   011F 3E C0       LINEA2:      LD   A,0C0H      ;Cambia a segunda linea del display
+0021   0121 D3 00                    OUT  (00H),A     ;Envia el comando
+0022   0123 CD 43 01                 CALL COMANDO     ;Ejecuta la subrutina para envio al LCD
+0023   0126             ;**************************
+0024   0126 21 60 02                 LD   HL,0260H    ;Poscion del segundo mensaje
+0025   0129 CD 36 01                 CALL OTRALET     ;Checa si hay mas letras
+0026   012C             ;**************************
+0027   012C 3E 18       FIN:         LD   A,18H       ;Mueve el letrero hacia la izquierda
+0028   012E D3 00                    OUT  (00H),A     ;Envia el comando al LCD
+0029   0130 CD 43 01                 CALL COMANDO     ;Ejecuta la subrutina para el envio del LCD
+0030   0133 C3 2C 01                 JP   FIN         ;Realiza un ciclo infinito
+0031   0136             ;**************************
+0032   0136 7E          OTRALET:     LD   A,(HL)      ;Lee el dato de la memoria
+0033   0137 FE 24                    CP   '$'         ;Checa si es el final de la cadena
+0034   0139 C8                       RET  Z           ;Si es el final termina la subrutina
+0035   013A D3 00                    OUT  (00H),A     ;Envia el comando hacia el LCD
+0036   013C CD 53 01                 CALL DATO        ;Ejecuta la subrutina de envio de caracter
+0037   013F 23                       INC  HL          ;Incrementa el indice de la tabla
+0038   0140 C3 36 01                 JP   OTRALET     ;Repite el proceso letra por letra
+0039   0143             ;**************************
+0040   0143 3E 00       COMANDO:     LD   A,00H       ;Activa RS=0 y E=0
+0041   0145 D3 01                    OUT  (01H),A
+0042   0147 3E 01                    LD   A,01H       ;Activa RS=0 y E=1
+0043   0149 D3 01                    OUT  (01H),A
+0044   014B 3E 00                    LD   A,00H       ;Activa RS=0 y E=0
+0045   014D D3 01                    OUT  (01H),A
+0046   014F CD 63 01                 CALL TIEMPO      ;Consume 10 ms de tiempo
+0047   0152 C9                       RET
+0048   0153             ;**************************
+0049   0153 3E 02       DATO:        LD   A,02H       ;Activa RS=1 y E=0
+0050   0155 D3 01                    OUT  (01H),A
+0051   0157 3E 03                    LD   A,03H       ;Activa RS=1 y E=1
+0052   0159 D3 01                    OUT  (01H),A
+0053   015B 3E 02                    LD   A,02H       ;Activa RS=1 y E=0
+0054   015D D3 01                    OUT  (01H),A
+0055   015F CD 63 01                 CALL TIEMPO      ;Consume 10 ms de tiempo
+0056   0162 C9                       RET
+0057   0163             ;**************************
+0058   0163 3E 05       TIEMPO:      LD   A,05H       ;Decrementa 2 registros en
+0059   0165 06 05       CICLO2:      LD   B,05H       ;forma recursiva
+0060   0167 05          CICLO:       DEC  B           ;Decrementa 255 veces el
+0061   0168 C2 67 01                 JP   NZ,CICLO    ;numero 255
+0062   016B 3D                       DEC  A
+0063   016C C2 65 01                 JP   NZ,CICLO2
+0064   016F C9                       RET
+0065   0170             ;**************************
+0066   0170                          ORG  0200H       ;Direccion de tabla de comandos
+0067   0200 01                       DB   01H         ;Limpia el display
+0068   0201 02                       DB   02H         ;Regreso al origen
+0069   0202 06                       DB   06H         ;Insercion de datos con incermento
+0070   0203                                           ;y display fijo
+0071   0203 0F          	     DB   0FH         ;Display, cursor y parpadeo encendido
+0072   0204 38          	     DB   38H         ;8 bits, 2 lineas y caracteres de 5x7
+0073   0205 80          	     DB   080H        ;Primer caracter de linea 1
+0074   0206 24          	     DB   '$'         ;Indicador de fin de tabla
+0075   0207             ;**************************
+0076   0207                          ORG  0250H       ;Tabla de caracteres de linea 1
+0077   0250 4C 61 62 6F              DB   "Laboratorio de$"
+0077   0254 72 61 74 6F 
+0077   0258 72 69 6F 20 
+0077   025C 64 65 24    
+0078   025F                          ORG  0260H       ;Tabla de caracteres de linea 2
+0079   0260 4D 69 63 72              DB   "Microprocesadore"
+0079   0264 6F 70 72 6F 
+0079   0268 63 65 73 61 
+0079   026C 64 6F 72 65 
+0080   0270                          ORG  0270H       ;continuacion de linea 2
+0081   0270 73 20 49 54              DB   "s ITSE$"
+0081   0274 53 45 24    
+0082   0277                          END
+Number of errors = 0
